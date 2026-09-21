@@ -1,0 +1,15 @@
+spring:
+  ai:
+    dashscope:
+      api-key: sk-ws-H.PIDILPE.miHZ.MEYCIQC1bukwoIAbZBUkYDQrOwk59zwNrnIfxHPxyQUVNBDnWwIhAIl0iy2PjFsCULA2ZZPHp-ckTHy7-4TKR4d88gys0MDf
+#      base-url: https://ws-i5fgqd12r9j55xwe.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
+      chat:
+        options:
+          model: qwen-plus
+    # ollama 配置
+    ollama:
+      base-url: http://localhost:11434
+      chat:
+        model: gemma3:1b
+
+

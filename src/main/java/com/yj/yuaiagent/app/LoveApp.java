@@ -1,0 +1,123 @@
+package com.yj.yuaiagent.app;
+
+import com.yj.yuaiagent.advisor.MyLoggerAdvisor;
+import com.yj.yuaiagent.chatmemory.FileBasedChatMemory;
+import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
+import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+
+@Component
+@Slf4j
+public class LoveApp {
+
+    private final ChatClient chatClient;
+
+    @Resource
+    private VectorStore loveAppVectorStore;
+
+    private static final String SYSTEM_PROMPT = "扮演深耕恋爱心理领域的专家。开场向用户表明身份，告知用户可倾诉恋爱难题。" +
+            "围绕单身、恋爱、已婚三种状态提问：单身状态询问社交圈拓展及追求心仪对象的困扰；" +
+            "恋爱状态询问沟通、习惯差异引发的矛盾；已婚状态询问家庭责任与亲属关系处理的问题。" +
+            "引导用户详述事情经过、对方反应及自身想法，以便给出专属解决方案。";
+
+    public LoveApp(ChatModel dashscopeChatModel) {
+
+
+        //初始化基于文件的对话记忆
+        String fileDir = System.getProperty("user.dir") + "/temp/chatMemory";
+        ChatMemory chatMemory = new FileBasedChatMemory(fileDir,10);
+
+//        //基于内存的对话记忆方式
+//        // 1. 构建 ChatMemory（逻辑层），指定存储层实现和消息窗口大小
+//        ChatMemory chatMemory = MessageWindowChatMemory.builder()
+//                .chatMemoryRepository(new InMemoryChatMemoryRepository())
+//                .maxMessages(10)// 可选：控制窗口内的最大消息数
+//                .build();
+
+        chatClient = ChatClient.builder(dashscopeChatModel)
+                .defaultSystem(SYSTEM_PROMPT)
+                .defaultAdvisors(
+                        MessageChatMemoryAdvisor.builder(chatMemory).build(),
+                        new MyLoggerAdvisor()
+                )
+                .build();
+
+    }
+
+    /**
+     * ai对话方法
+     * @param message 用户提示词
+     * @param chatId 记忆对话id
+     * @return
+     */
+    public String doChat(String message,String chatId){
+
+        ChatResponse chatResponse = chatClient.prompt()
+                .user(message)
+                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, chatId))
+                .call()
+                .chatResponse();
+        String content = chatResponse.getResult().getOutput().getText();
+        log.info("content:{}",content);
+        return content;
+    }
+
+    /**
+     * 结构化输出的类
+     * @param title 标题
+     * @param suggestions  建议
+     */
+    record LoveReport(String title, List<String> suggestions) {
+    }
+
+
+    /**
+     * ai对话方法，返回恋爱报告
+     * @param message 用户提示词
+     * @param chatId 记忆对话id
+     * @return
+     */
+    public LoveReport doChatWithReport(String message, String chatId) {
+        LoveReport loveReport = chatClient
+                .prompt()
+                .system(SYSTEM_PROMPT + "每次对话后都要生成恋爱结果，标题为{用户名}的恋爱报告，内容为建议列表")
+                .user(message)
+                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, chatId))
+                .call()
+                .entity(LoveReport.class);
+        log.info("loveReport: {}", loveReport);
+        return loveReport;
+    }
+
+    /**
+     *  ai对话方法，返回向量(基于RAG回答)
+     * @param message
+     * @param chatId
+     * @return
+     */
+    public String doChatWithVectoreStore(String message, String chatId) {
+        ChatResponse chatResponse = chatClient.prompt()
+                .user(message)
+                //记忆保存
+                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, chatId))
+                //日志增强
+                .advisors(new MyLoggerAdvisor())
+                //应用RAG进行回答
+                .advisors(QuestionAnswerAdvisor.builder(loveAppVectorStore).build())
+                .call()
+                .chatResponse();
+        String content = chatResponse.getResult().getOutput().getText();
+        log.info("content:{}",content);
+        return content;
+    }
+
+}
