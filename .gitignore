@@ -7,7 +7,7 @@ target/
 ### CUSTOM ###
 application-local.yml
 temp
-
+mcp-servers.json
 ### STS ###
 .apt_generated
 .classpath

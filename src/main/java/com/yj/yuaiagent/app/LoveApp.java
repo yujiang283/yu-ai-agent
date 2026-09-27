@@ -15,6 +15,7 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.support.ToolCallbacks;
 import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Component;
 
@@ -143,7 +144,6 @@ public class LoveApp {
         return content;
     }
 
-    //
     /**
      *  恋爱教程调用工具的应用
      * @param message
@@ -159,6 +159,31 @@ public class LoveApp {
                 //日志增强
                 .advisors(new MyLoggerAdvisor())
                 .toolCallbacks(allTools)
+                .call()
+                .chatResponse();
+        String content = chatResponse.getResult().getOutput().getText();
+//        log.info("content:{}",content);
+        return content;
+    }
+
+    @Resource
+    private ToolCallbackProvider toolCallbackProvider;
+
+    /**
+     *  恋爱教程调用MCP的应用
+     * @param message
+     * @param chatId
+     * @return
+     */
+    public String doChatWithMcp(String message, String chatId) {
+
+        ChatResponse chatResponse = chatClient.prompt()
+                .user(message)
+                //记忆保存
+                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, chatId))
+                //日志增强
+                .advisors(new MyLoggerAdvisor())
+                .toolCallbacks(toolCallbackProvider)
                 .call()
                 .chatResponse();
         String content = chatResponse.getResult().getOutput().getText();
