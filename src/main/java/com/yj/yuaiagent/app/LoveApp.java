@@ -2,6 +2,9 @@ package com.yj.yuaiagent.app;
 
 import com.yj.yuaiagent.advisor.MyLoggerAdvisor;
 import com.yj.yuaiagent.chatmemory.FileBasedChatMemory;
+import com.yj.yuaiagent.rag.LoveAppRagCustomAdvisiorFactory;
+import com.yj.yuaiagent.rag.QueryRewriter;
+import com.yj.yuaiagent.tools.ToolRegistration;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -10,6 +13,8 @@ import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvi
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.support.ToolCallbacks;
+import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Component;
 
@@ -23,6 +28,15 @@ public class LoveApp {
 
     @Resource
     private VectorStore loveAppVectorStore;
+
+    @Resource
+    private VectorStore pgVectorVectorStore;
+
+    @Resource
+    private QueryRewriter queryRewriter;
+
+    @Resource
+    private ToolCallback[] allTools;
 
     private static final String SYSTEM_PROMPT = "扮演深耕恋爱心理领域的专家。开场向用户表明身份，告知用户可倾诉恋爱难题。" +
             "围绕单身、恋爱、已婚三种状态提问：单身状态询问社交圈拓展及追求心仪对象的困扰；" +
@@ -46,8 +60,8 @@ public class LoveApp {
         chatClient = ChatClient.builder(dashscopeChatModel)
                 .defaultSystem(SYSTEM_PROMPT)
                 .defaultAdvisors(
-                        MessageChatMemoryAdvisor.builder(chatMemory).build(),
-                        new MyLoggerAdvisor()
+                        MessageChatMemoryAdvisor.builder(chatMemory).build()
+//                        new MyLoggerAdvisor()
                 )
                 .build();
 
@@ -105,19 +119,50 @@ public class LoveApp {
      * @return
      */
     public String doChatWithVectoreStore(String message, String chatId) {
+
+        //根据用户的提示词进行扩展
+        String rewriteMessage = queryRewriter.doQueryRewrite(message);
+
+        ChatResponse chatResponse = chatClient.prompt()
+                .user(rewriteMessage)
+                //记忆保存
+                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, chatId))
+                //日志增强
+                .advisors(new MyLoggerAdvisor())
+                //应用RAG进行回答(基于内存)
+//                .advisors(QuestionAnswerAdvisor.builder(loveAppVectorStore).build())
+                //基于本地rag(PostGreSQl)进行回答
+//                .advisors(QuestionAnswerAdvisor.builder(pgVectorVectorStore).build())
+                .advisors(LoveAppRagCustomAdvisiorFactory.createLoveAppRagCustomAdvisior(
+                        pgVectorVectorStore,"单身"
+                ))
+                .call()
+                .chatResponse();
+        String content = chatResponse.getResult().getOutput().getText();
+//        log.info("content:{}",content);
+        return content;
+    }
+
+    //
+    /**
+     *  恋爱教程调用工具的应用
+     * @param message
+     * @param chatId
+     * @return
+     */
+    public String doChatWithTools(String message, String chatId) {
+
         ChatResponse chatResponse = chatClient.prompt()
                 .user(message)
                 //记忆保存
                 .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, chatId))
                 //日志增强
                 .advisors(new MyLoggerAdvisor())
-                //应用RAG进行回答
-                .advisors(QuestionAnswerAdvisor.builder(loveAppVectorStore).build())
+                .toolCallbacks(allTools)
                 .call()
                 .chatResponse();
         String content = chatResponse.getResult().getOutput().getText();
-        log.info("content:{}",content);
+//        log.info("content:{}",content);
         return content;
     }
-
 }

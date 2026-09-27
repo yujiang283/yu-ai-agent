@@ -1,7 +1,6 @@
 package com.yj.yuaiagent;
 
-import com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeConnectionProperties;
-import jakarta.annotation.Resource;
+
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
