@@ -18,6 +18,7 @@ import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -84,6 +85,21 @@ public class LoveApp {
         String content = chatResponse.getResult().getOutput().getText();
         log.info("content:{}",content);
         return content;
+    }
+
+    /**
+     * ai对话方法（SSE流式传输，异步）
+     * @param message 用户提示词
+     * @param chatId 记忆对话id
+     * @return
+     */
+    public Flux<String> doChatByStream(String message,String chatId){
+
+          return chatClient.prompt()
+                .user(message)
+                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, chatId))
+                .stream()
+                .content();
     }
 
     /**

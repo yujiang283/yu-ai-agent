@@ -23,13 +23,15 @@ public class ToolRegistration {
         TerminalOperationTool terminalOperationTool = new TerminalOperationTool();
         WebScrapingTool webScrapingTool = new WebScrapingTool();
         WebSearchTool webSearchTool = new WebSearchTool(apiKey);
+        TerminateTool terminateTool = new TerminateTool();
         return ToolCallbacks.from(
                 fileOperationTool,
                 pdfGenerationTool,
                 resourceDownloadTool,
                 terminalOperationTool,
                 webScrapingTool,
-                webSearchTool
+                webSearchTool,
+                terminateTool
         );
     }
 }
