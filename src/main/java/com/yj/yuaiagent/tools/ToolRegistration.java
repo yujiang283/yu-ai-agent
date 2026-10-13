@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * 集中工具注册类
+ * @author Lenovo
  */
 @Component
 public class ToolRegistration {
@@ -24,6 +25,7 @@ public class ToolRegistration {
         WebScrapingTool webScrapingTool = new WebScrapingTool();
         WebSearchTool webSearchTool = new WebSearchTool(apiKey);
         TerminateTool terminateTool = new TerminateTool();
+        TimeTool timeTool = new TimeTool();
         return ToolCallbacks.from(
                 fileOperationTool,
                 pdfGenerationTool,
@@ -31,6 +33,7 @@ public class ToolRegistration {
                 terminalOperationTool,
                 webScrapingTool,
                 webSearchTool,
+                timeTool,
                 terminateTool
         );
     }

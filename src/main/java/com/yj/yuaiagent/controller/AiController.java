@@ -3,7 +3,6 @@ package com.yj.yuaiagent.controller;
 import com.yj.yuaiagent.agent.YuManus;
 import com.yj.yuaiagent.app.LoveApp;
 import jakarta.annotation.Resource;
-import lombok.Getter;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.http.MediaType;
